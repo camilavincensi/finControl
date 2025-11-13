@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Modal, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Picker } from '@react-native-picker/picker';
-import {Transaction} from "@/app/(tabs)";
+import {Transaction} from "@/app";
 
 
 

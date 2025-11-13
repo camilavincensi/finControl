@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import {useRouter} from "expo-router";
 
 interface SettingsProps {
     onLogout: () => void;
 }
 
 export default function Config({ onLogout }: SettingsProps) {
+    const router = useRouter();
     return (
         <SafeAreaView style={styles.container}>
             {/* HEADER */}
@@ -77,7 +79,7 @@ export default function Config({ onLogout }: SettingsProps) {
                     />
 
                     {/* LOGOUT */}
-                    <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+                    <TouchableOpacity style={styles.logoutBtn} onPress={() => router.replace('/login')}>
                         <View style={styles.row}>
                             <View style={[styles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
                                 <Svg width={20} height={20} stroke="#DC2626" strokeWidth={2} fill="none" viewBox="0 0 24 24">
