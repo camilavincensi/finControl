@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Modal, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Picker } from '@react-native-picker/picker';
-import {Transaction} from "@/app";
-
+import { db, auth } from "@/src/config/firebase";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 
 interface NewTransactionProps {
     onClose: () => void;
     onSave: (transaction: {
-        date: string;
-        amount: number;
-        description: string;
+        userId: string;
         type: "income" | "expense";
-        category: string
+        amount: number;
+        category: string;
+        description: string;
+        date: Timestamp;
+        createdAt: Date;
     }) => void;
     visible: boolean;
 }
@@ -30,20 +32,42 @@ export default function NewTransaction({ visible, onClose, onSave }: NewTransact
 
     const categories = type === 'income' ? incomeCategories : expenseCategories;
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!amount || !category) return;
 
-        onSave({
-            type,
-            amount: parseFloat(amount),
-            category,
-            date,
-            description,
-        });
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("Erro: usuário não autenticado.");
+                return;
+            }
 
-        setAmount('');
-        setCategory('');
-        setDescription('');
+            // Monta o objeto da transação
+            const newTransaction = {
+                userId: user.uid,
+                type,
+                amount: parseFloat(amount),
+                category,
+                description,
+                date: Timestamp.fromDate(new Date(date)),
+                createdAt: new Date(),
+            };
+
+            // Salva no Firestore
+            await addDoc(collection(db, "transactions"), newTransaction);
+
+            // Chama callback para atualizar lista na tela principal
+            onSave(newTransaction);
+
+            // Limpa os campos
+            setAmount("");
+            setCategory("");
+            setDescription("");
+            onClose();
+        } catch (error) {
+            console.error("Erro ao salvar transação:", error);
+            alert("Não foi possível salvar a transação.");
+        }
     };
 
     return (

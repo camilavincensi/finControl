@@ -6,6 +6,6 @@ export default function LoginScreen() {
     const router = useRouter();
 
     return (
-        <Login onLogin={() => router.replace('/(tabs)/home')} />
+        <Login onLogin={() => router.replace('/home')} />
     );
 }

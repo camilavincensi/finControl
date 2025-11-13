@@ -14,7 +14,6 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />       {/* Onboarding */}
             <Stack.Screen name="(tabs)" />      {/* Abas principais */}
-            <Stack.Screen name="login" />       {/* Caso tenha uma tela de login */}
         </Stack>
     );
 }
