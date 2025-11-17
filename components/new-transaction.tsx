@@ -1,36 +1,64 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Modal, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Picker } from '@react-native-picker/picker';
 import { db, auth } from "@/src/config/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import {collection, addDoc, Timestamp, updateDoc, doc} from "firebase/firestore";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {Transaction} from "@/app/Interface/transaction";
+import {useCategories} from "@/hooks/useCategories";
 
 
 interface NewTransactionProps {
     onClose: () => void;
-    onSave: (transaction: {
-        userId: string;
-        type: "income" | "expense";
-        amount: number;
-        category: string;
-        description: string;
-        date: Timestamp;
-        createdAt: Date;
-    }) => void;
+    onSave: (transaction: Transaction) => void;
     visible: boolean;
+    transactionToEdit?: Transaction | undefined | null;
+    isEditing?: boolean | undefined;
 }
 
-export default function NewTransaction({ visible, onClose, onSave }: NewTransactionProps) {
+export default function NewTransaction({ visible, onClose, onSave, transactionToEdit, isEditing }: NewTransactionProps) {
     const [type, setType] = useState<'income' | 'expense'>('expense');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
-    const incomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-    const expenseCategories = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Moradia', 'Outros'];
+    const { categories: allCategories } = useCategories();
+    const categories = allCategories.filter(c => c.type === type);
 
-    const categories = type === 'income' ? incomeCategories : expenseCategories;
+    useEffect(() => {
+        if (isEditing && transactionToEdit) {
+            setType(transactionToEdit.type);
+            setAmount(String(transactionToEdit.amount));
+            setCategory(transactionToEdit.category);
+            setDescription(transactionToEdit.description || "");
+
+            // transforma Timestamp do Firestore → yyyy-mm-dd
+            const d = transactionToEdit.date.toDate();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            setDate(`${y}-${m}-${day}`);
+        }
+    }, [isEditing, transactionToEdit]);
+
+    useEffect(() => {
+        if (visible && !isEditing) {
+            setType('expense');
+            setAmount('');
+            setCategory('');
+            setDescription('');
+            setDate(new Date().toISOString().split("T")[0]);
+        }
+    }, [visible, isEditing]);
+
+
+    function createLocalDateFromISO(iso: string) {
+        const [year, month, day] = iso.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
 
     const handleSubmit = async () => {
         if (!amount || !category) return;
@@ -42,33 +70,51 @@ export default function NewTransaction({ visible, onClose, onSave }: NewTransact
                 return;
             }
 
-            // Monta o objeto da transação
-            const newTransaction = {
+            const transactionData = {
                 userId: user.uid,
                 type,
                 amount: parseFloat(amount),
                 category,
                 description,
-                date: Timestamp.fromDate(new Date(date)),
-                createdAt: new Date(),
+                date: Timestamp.fromDate(createLocalDateFromISO(date)),
             };
 
-            // Salva no Firestore
-            await addDoc(collection(db, "transactions"), newTransaction);
+            let savedTransaction;
 
-            // Chama callback para atualizar lista na tela principal
-            onSave(newTransaction);
+            if (isEditing && transactionToEdit?.id) {
+                // ATUALIZA USANDO O ID GERADO PELO FIRESTORE
+                await updateDoc(
+                    doc(db, "transactions", transactionToEdit.id),
+                    transactionData
+                );
 
-            // Limpa os campos
-            setAmount("");
-            setCategory("");
-            setDescription("");
+                savedTransaction = { ...transactionData, id: transactionToEdit.id };
+            } else {
+                // CRIA NOVO DOCUMENTO COM ID AUTOMÁTICO
+                const ref = await addDoc(
+                    collection(db, "transactions"),
+                    {
+                        ...transactionData,
+                        createdAt: new Date(),
+                    }
+                );
+
+                savedTransaction = { ...transactionData, id: ref.id };
+            }
+
+            onSave(savedTransaction);
             onClose();
+
         } catch (error) {
             console.error("Erro ao salvar transação:", error);
-            alert("Não foi possível salvar a transação.");
+            alert("Não foi possível salvar.");
         }
     };
+
+    function formatDateForDisplay(iso: string) {
+        const [y, m, d] = iso.split("-");
+        return `${d}/${m}/${y}`;
+    }
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -161,10 +207,12 @@ export default function NewTransaction({ visible, onClose, onSave }: NewTransact
                                     style={styles.picker}
                                 >
                                     <Picker.Item label="Selecione uma categoria" value="" />
+
                                     {categories.map((cat) => (
-                                        <Picker.Item key={cat} label={cat} value={cat} />
+                                        <Picker.Item key={cat.id} label={cat.name} value={cat.name} />
                                     ))}
                                 </Picker>
+
                             </View>
                         </View>
 
@@ -172,17 +220,37 @@ export default function NewTransaction({ visible, onClose, onSave }: NewTransact
                         <View style={styles.block}>
                             <Text style={styles.label}>Data</Text>
 
-                            <View style={styles.inputIconWrapper}>
+                            <TouchableOpacity
+                                style={styles.inputIconWrapper}
+                                onPress={() => setShowDatePicker(true)}
+                            >
                                 <Svg width={20} height={20} stroke="#9CA3AF" strokeWidth={2} fill="none" viewBox="0 0 24 24">
                                     <Path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
                                 </Svg>
-                                <TextInput
-                                    style={styles.input}
-                                    value={date}
-                                    onChangeText={setDate}
+
+                                <Text style={[styles.input, { color: '#111827' }]}>
+                                    {formatDateForDisplay(date)}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={createLocalDateFromISO(date)}
+                                    mode="date"
+                                    display="spinner"
+                                    onChange={(event, selectedDate) => {
+                                        setShowDatePicker(false);
+                                        if (selectedDate) {
+                                            const y = selectedDate.getFullYear();
+                                            const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                                            const d = String(selectedDate.getDate()).padStart(2, '0');
+                                            setDate(`${y}-${m}-${d}`);
+                                        }
+                                    }}
                                 />
-                            </View>
+                            )}
                         </View>
+
 
                         {/* DESCRIPTION */}
                         <View style={styles.block}>

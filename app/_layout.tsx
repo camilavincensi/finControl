@@ -1,19 +1,36 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import * as Notifications from "expo-notifications";
+import { useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from '@/src/config/firebase';
+import { initPush } from "@/src/service/pushNotificationService";
+import {Alert} from "react-native";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// 🟢 Handler deve ficar FORA do componente
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true
+    }),
+});
 
 export default function RootLayout() {
+    // Inicializa push quando logar
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) await initPush(user.uid);
+        });
+        return unsubscribe;
+    }, []);
+
+
     return (
         <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />       {/* Onboarding */}
-            <Stack.Screen name="(tabs)" />      {/* Abas principais */}
+            <Stack.Screen name="index"/>
+            <Stack.Screen name="(tabs)"/>
         </Stack>
     );
 }

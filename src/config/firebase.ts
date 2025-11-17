@@ -1,8 +1,7 @@
 // src/config/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth/react-native';
-import { getFirestore } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCGWR-NfYPRl-i_qkfqgJEQTaqoYDb6itQ",
@@ -14,10 +13,9 @@ const firebaseConfig = {
     measurementId: "G-47YC03LZ78"
 };
 
+// Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-export const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-});
-
+// Usa a versão web (funciona no Expo managed)
+export const auth = getAuth(app);
 export const db = getFirestore(app);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState} from "react";
 import {
     View,
     Text,
@@ -6,71 +6,30 @@ import {
     StyleSheet,
     ScrollView,
 } from "react-native";
-import {Ionicons, Feather, MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
+import {Ionicons, Feather, MaterialCommunityIcons} from "@expo/vector-icons";
+import { db } from "@/src/config/firebase";
+import { deleteDoc, doc} from "firebase/firestore";
+import {formatDateForDisplay} from "@/src/utils/convertDate";
+import AddButton from "@/components/addButton";
+import {useTransactions} from "@/hooks/useTransaction";
 import {Transaction} from "@/app/Interface/transaction";
-import NewTransaction from "@/components/new-transaction";
 
-
-
-
-
-interface TransactionsProps {
-    transactions: Transaction[];
-    onDelete: (id: string) => void;
-    onAddTransaction: () => void;
-}
-
-export default function Transactions({
-                                        // transactions,
-                                         onDelete,
-                                         onAddTransaction,
-                                     }: TransactionsProps) {
+export default function Transactions() {
     const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
 
-    const [modalVisible, setModalVisible] = useState(false);
+    const { transactions, loading } = useTransactions();
+    const [editModalVisible, setEditModalVisible] = useState(false);
 
-    const [transactions, setTransactions] = useState<Transaction[]>([
-        {
-            id: '1',
-            type: 'income',
-            amount: 3500,
-            category: 'Salário',
-            date: '2025-11-01',
-            description: 'Salário mensal'
-        },
-        {
-            id: '2',
-            type: 'expense',
-            amount: 450,
-            category: 'Alimentação',
-            date: '2025-11-02',
-            description: 'Supermercado'
-        },
-        {
-            id: '3',
-            type: 'expense',
-            amount: 120,
-            category: 'Transporte',
-            date: '2025-11-02',
-            description: 'Uber'
-        },
-        {
-            id: '4',
-            type: 'expense',
-            amount: 80,
-            category: 'Lazer',
-            date: '2025-11-03',
-            description: 'Cinema'
-        },
-        {
-            id: '5',
-            type: 'income',
-            amount: 200,
-            category: 'Freelance',
-            date: '2025-11-03',
-            description: 'Projeto extra'
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteDoc(doc(db, "transactions", id));
+            console.log("Deletado com sucesso");
+        } catch (error) {
+            console.log("Erro ao deletar", error);
         }
-    ]);
+    };
 
     const filteredTransactions = transactions.filter((t) => {
         if (filter === "all") return true;
@@ -138,91 +97,88 @@ export default function Transactions({
                         />
                         <Text style={styles.emptyText}>Nenhuma transação encontrada</Text>
 
-                        <TouchableOpacity onPress={onAddTransaction}>
-                            <Text style={styles.addText}>Adicionar primeira transação</Text>
-                        </TouchableOpacity>
                     </View>
                 ) : (
                     filteredTransactions.map((t) => (
-                        <View key={t.id} style={styles.item}>
-                            <View style={styles.itemLeft}>
-                                <View
-                                    style={[
-                                        styles.iconCircle,
-                                        t.type === "income"
-                                            ? styles.iconCircleGreen
-                                            : styles.iconCircleRed,
-                                    ]}
-                                >
-                                    {t.type === "income" ? (
-                                        <Feather name="arrow-up" size={22} color="#00B37E" />
-                                    ) : (
-                                        <Feather name="arrow-down" size={22} color="#EF4444" />
-                                    )}
+
+                        <TouchableOpacity
+                            key={t.id}
+                            onPress={() => {
+                                setSelectedTransaction(null);
+                                setTimeout(() => {
+                                    setSelectedTransaction(t);
+                                    setEditModalVisible(true);
+                                }, 0);
+                            }}
+                        >
+                            <View  style={styles.item}>
+                                <View style={styles.itemLeft}>
+                                    <View
+                                        style={[
+                                            styles.iconCircle,
+                                            t.type === "income"
+                                                ? styles.iconCircleGreen
+                                                : styles.iconCircleRed,
+                                        ]}
+                                    >
+                                        {t.type === "income" ? (
+                                            <Feather name="arrow-up" size={22} color="#00B37E" />
+                                        ) : (
+                                            <Feather name="arrow-down" size={22} color="#EF4444" />
+                                        )}
+                                    </View>
+
+                                    <View style={styles.itemInfo}>
+                                        <Text style={styles.itemCategory}>{t.category}</Text>
+                                        {t.description ? (
+                                            <Text style={styles.itemDescription}>{t.description}</Text>
+                                        ) : null}
+
+                                        <Text style={styles.itemDate}>
+                                            {formatDateForDisplay(t.date)}
+                                        </Text>
+                                    </View>
                                 </View>
 
-                                <View style={styles.itemInfo}>
-                                    <Text style={styles.itemCategory}>{t.category}</Text>
-                                    {t.description ? (
-                                        <Text style={styles.itemDescription}>{t.description}</Text>
-                                    ) : null}
-
-                                    <Text style={styles.itemDate}>
-                                        {new Date(t.date).toLocaleDateString("pt-BR", {
-                                            day: "2-digit",
-                                            month: "short",
-                                            year: "numeric",
-                                        })}
+                                <View style={styles.itemRight}>
+                                    <Text
+                                        style={[
+                                            styles.amount,
+                                            t.type === "income" ? styles.textGreen : styles.textRed,
+                                        ]}
+                                    >
+                                        {t.type === "income" ? "+" : "-"} R${" "}
+                                        {t.amount.toFixed(2).replace(".", ",")}
                                     </Text>
+
+                                    <TouchableOpacity onPress={() => handleDelete(t.id)}>
+                                        <Ionicons
+                                            name="trash-outline"
+                                            size={20}
+                                            color="#9CA3AF"
+                                            style={{ marginLeft: 8, marginTop: 15 }}
+                                        />
+                                    </TouchableOpacity>
                                 </View>
                             </View>
+                        </TouchableOpacity>
 
-                            <View style={styles.itemRight}>
-                                <Text
-                                    style={[
-                                        styles.amount,
-                                        t.type === "income" ? styles.textGreen : styles.textRed,
-                                    ]}
-                                >
-                                    {t.type === "income" ? "+" : "-"} R${" "}
-                                    {t.amount.toFixed(2).replace(".", ",")}
-                                </Text>
-
-                                <TouchableOpacity onPress={() => onDelete(t.id)}>
-                                    <Ionicons
-                                        name="trash-outline"
-                                        size={20}
-                                        color="#9CA3AF"
-                                        style={{ marginLeft: 8, marginTop: 15 }}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
                     ))
                 )}
             </ScrollView>
 
-            {/* ✅ BOTÃO ABRE O MODAL */}
-            <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-                <MaterialIcons name="add" size={28} color="#FFF" />
-            </TouchableOpacity>
-
-            {/* ✅ MODAL NEW TRANSACTION */}
-            <NewTransaction
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-                onSave={(transaction) => {
-                    console.log("Nova transação", transaction);
-                    setModalVisible(false);
+            <AddButton
+                onPressAdd={() => {
+                    setSelectedTransaction(null);
+                    setEditModalVisible(false);
                 }}
+                editModalVisible={editModalVisible}
+                selectedTransaction={selectedTransaction}
             />
         </View>
     );
 }
 
-/* -----------------------------
- *      FILTER BUTTON
- * ----------------------------- */
 function FilterButton({
                           label,
                           active,

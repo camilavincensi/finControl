@@ -1,53 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {View, Text, ScrollView, StyleSheet, TouchableOpacity} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { PieChart } from "react-native-gifted-charts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import NewTransaction from "@/components/new-transaction";
 
-// 🔥 Importações do Firebase
-import { db, auth } from "@/src/config/firebase";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
-
-// ------------------ TIPOS ------------------
-export interface Transaction {
-    id: string;
-    type: 'income' | 'expense';
-    amount: number;
-    category: string;
-    date: string;
-    description?: string;
-    userId?: string;
-}
+import AddButton from "@/components/addButton";
+import PieChartComponent from "@/components/pieChart";
+import TransactionsPreview from "@/components/previewTransactions";
+import {useRouter} from "expo-router";
+import {useTransactions} from "@/hooks/useTransaction";
 
 // ------------------ COMPONENTE ------------------
 export default function Home() {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
+
     const insets = useSafeAreaInsets();
 
-    // ✅ Buscar dados do Firestore em tempo real
-    useEffect(() => {
-        const user = auth.currentUser;
-        if (!user) return;
+    const [open, setOpen] = useState(false);
 
-        const q = query(
-            collection(db, "transactions"),
-            where("userId", "==", user.uid),
-            orderBy("date", "desc")
-        );
+    const { transactions, loading } = useTransactions();
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as Transaction[];
-
-            setTransactions(data);
-        });
-
-        return () => unsubscribe();
-    }, []);
+    const router = useRouter();
 
     // ------------------ CÁLCULOS ------------------
     const totalIncome = transactions
@@ -67,13 +38,6 @@ export default function Home() {
             return acc;
         }, {} as Record<string, number>);
 
-    const COLORS = ['#00B37E', '#FF6B6B', '#4ECDC4', '#FFD93D', '#A78BFA', '#F472B6'];
-
-    const chartData = Object.entries(expensesByCategory).map(([name, value], index) => ({
-        value: value,
-        text: name,
-        color: COLORS[index % COLORS.length],
-    }));
 
     // ------------------ LAYOUT ------------------
     return (
@@ -83,7 +47,9 @@ export default function Home() {
                 <View style={{ paddingTop: insets.top }}>
                     <View style={styles.headerTop}>
                         <Text style={styles.headerTitle}>Dashboard</Text>
-                        <MaterialIcons name="notifications" size={26} color="white" />
+                        <TouchableOpacity onPress={() => router.navigate("/historyScreen")}>
+                            <MaterialIcons name="notifications" size={26} color="white" />
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.balanceContainer}>
@@ -130,96 +96,17 @@ export default function Home() {
             {/* CONTEÚDO PRINCIPAL */}
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {/* Gráfico */}
-                <View style={styles.chartContainer}>
-                    <Text style={styles.chartTitle}>Gastos por Categoria</Text>
-                    {chartData.length > 0 ? (
-                        <>
-                            <PieChart
-                                data={chartData}
-                                donut
-                                showText
-                                radius={90}
-                                innerRadius={60}
-                                textColor="white"
-                                focusOnPress
-                            />
-                            <View style={styles.legendContainer}>
-                                {chartData.map((item, index) => (
-                                    <View key={index} style={styles.legendItem}>
-                                        <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                                        <Text style={styles.legendLabel}>{item.text}</Text>
-                                        <Text style={styles.legendValue}>
-                                            R$ {item.value.toFixed(2).replace('.', ',')}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </>
-                    ) : (
-                        <Text style={styles.noDataText}>Nenhuma despesa registrada</Text>
-                    )}
-                </View>
+                <PieChartComponent expensesByCategory={expensesByCategory}/>
 
-                {/* Transações Recentes */}
-                <View style={styles.transactionsSection}>
-                    <View style={styles.transactionsHeader}>
-                        <Text style={styles.transactionsTitle}>Transações Recentes</Text>
-                        <Text style={styles.link}>Ver todas</Text>
-                    </View>
+                <TransactionsPreview
+                    transactions={transactions}
+                    onPressSeeAll={() => router.replace('/transaction')} // ajuste o nome da rota
+                />
 
-                    {transactions.slice(0, 4).map(transaction => (
-                        <View key={transaction.id} style={styles.transactionItem}>
-                            <View style={styles.transactionLeft}>
-                                <View
-                                    style={[
-                                        styles.transactionIcon,
-                                        {
-                                            backgroundColor:
-                                                transaction.type === 'income' ? '#D1FAE5' : '#FEE2E2',
-                                        },
-                                    ]}
-                                >
-                                    <MaterialIcons
-                                        name={transaction.type === 'income' ? 'arrow-upward' : 'arrow-downward'}
-                                        size={22}
-                                        color={transaction.type === 'income' ? '#00B37E' : '#EF4444'}
-                                    />
-                                </View>
-                                <View>
-                                    <Text style={styles.transactionCategory}>{transaction.category}</Text>
-                                    <Text style={styles.transactionDate}>
-                                        {new Date(transaction.date).toLocaleDateString('pt-BR')}
-                                    </Text>
-                                </View>
-                            </View>
-                            <Text
-                                style={[
-                                    styles.transactionAmount,
-                                    {
-                                        color:
-                                            transaction.type === 'income' ? '#00B37E' : '#EF4444',
-                                    },
-                                ]}
-                            >
-                                {transaction.type === 'income' ? '+' : '-'} R${' '}
-                                {transaction.amount.toFixed(2).replace('.', ',')}
-                            </Text>
-                        </View>
-                    ))}
-                </View>
             </ScrollView>
 
-            {/* BOTÃO + */}
-            <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-                <MaterialIcons name="add" size={28} color="#FFF" />
-            </TouchableOpacity>
+            <AddButton openExternally={open} />
 
-            {/* MODAL NOVA TRANSAÇÃO */}
-            <NewTransaction
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-                onSave={() => setModalVisible(false)} // atualiza automático pelo onSnapshot
-            />
         </View>
     );
 }
@@ -256,7 +143,12 @@ const styles = StyleSheet.create({
     chartContainer: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginTop: 16 },
     chartTitle: { fontSize: 16, fontWeight: '600', marginBottom: 16, color: '#111827' },
     legendContainer: { marginTop: 16 },
-    legendItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    legendItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8
+    },
     legendDot: { width: 10, height: 10, borderRadius: 5 },
     legendLabel: { color: '#374151', fontSize: 14 },
     legendValue: { color: '#111827', fontSize: 14 },
@@ -273,22 +165,12 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 8,
         alignItems: 'center',
+        gap: 20,
     },
-    transactionLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    transactionLeft: { flexDirection: 'row', alignItems: 'center', gap: 20 },
     transactionIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     transactionCategory: { color: '#111827', fontSize: 15 },
-    transactionDate: { color: '#9CA3AF', fontSize: 13 },
+    transactionDate: { color: '#9CA3AF', fontSize: 13, marginTop: 6 },
     transactionAmount: { fontWeight: '600', fontSize: 15 },
-    fab: {
-        position: 'absolute',
-        bottom: 30,
-        right: 24,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#00B37E',
-        alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 4,
-    },
+
 });

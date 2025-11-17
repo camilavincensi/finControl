@@ -1,7 +1,13 @@
 {
   "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "f760dcc2-e0b9-4dfe-8181-fefdd5e0cc22"
+      },
+      "router": {}
+    },
     "name": "finControl",
-    "slug": "finControl",
+    "slug": "fincontrol",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,7 +15,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.finControl"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,8 +25,11 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true,
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.finControl"
     },
     "web": {
       "output": "static",
@@ -38,11 +48,20 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "mode": "production"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "camilavincensi"
   }
 }

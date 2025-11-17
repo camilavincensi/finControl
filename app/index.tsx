@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {useRouter} from "expo-router";
+import { registerForPushToken} from "@/src/service/pushNotificationService";
+import * as Notifications from "expo-notifications";
+import {db} from "@/src/config/firebase";
+import {doc, updateDoc} from "firebase/firestore";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     width: '100%',
-    paddingHorizontal: 16, // 👈 margem lateral pros botões
+    paddingHorizontal: 16,
   },
   primaryButton: {
     backgroundColor: '#00B37E',
