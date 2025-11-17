@@ -1,6 +1,44 @@
-# Welcome to your Expo app 👋
+# Recreate file and return it to user
+content = """# 💰 FinControl
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+FinControl é um aplicativo mobile de **controle financeiro pessoal**, desenvolvido em **React Native + Expo**, com backend em **Firebase**.  
+Nosso objetivo é oferecer uma solução simples, prática e automatizada para que o usuário organize suas finanças, controle entradas e saídas, receba alertas e tenha mais consciência do próprio dinheiro.
+
+---
+
+## 🚀 Funcionalidades
+
+- 🔐 **Autenticação de usuário** (Firebase Auth)
+- 💸 **Cadastro de receitas e despesas**
+- 🏷️ **Categorias personalizáveis**
+- 🔔 **Notificações push** para alertas financeiros
+- 📂 **Histórico de alertas armazenado no Firestore**
+- 📊 **Dashboard com saldo, total de entradas e saídas**
+- 👤 **Tela de configurações e perfil do usuário**
+
+---
+
+## 🧠 Como funcionam os alertas
+
+O app monitora as transações do usuário em tempo real utilizando **onSnapshot** (Firestore).  
+Quando uma **despesa ultrapassa o limite configurado**, o FinControl:
+
+1. Envia uma **notificação push via Expo Notifications**
+2. Registra o alerta no **Histórico de Alertas** no Firestore
+3. Exibe no app para consulta posterior
+
+## 🛠️ Tecnologias e Bibliotecas
+
+| Tecnologia | Uso |
+|-----------|-----|
+| React Native | Base mobile |
+| Expo | Build e notificações |
+| Firebase Authentication | Login/Cadastro |
+| Firestore | Banco de dados |
+| Expo Notifications | Push notifications |
+| Context API + Hooks | Estado global |
+
+---
 
 ## Get started
 
@@ -15,36 +53,3 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npx expo start
    ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
