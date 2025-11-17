@@ -1,5 +1,5 @@
 # Recreate file and return it to user
-content = """# 💰 FinControl
+# 💰 FinControl
 
 FinControl é um aplicativo mobile de **controle financeiro pessoal**, desenvolvido em **React Native + Expo**, com backend em **Firebase**.  
 Nosso objetivo é oferecer uma solução simples, prática e automatizada para que o usuário organize suas finanças, controle entradas e saídas, receba alertas e tenha mais consciência do próprio dinheiro.
